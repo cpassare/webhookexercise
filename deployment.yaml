@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-webhook-namespace
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-webhook-service
+  namespace: my-webhook-namespace
+  annotations:
+    # OpenShift magically creates a Secret with TLS certs based on this annotation
+    service.beta.openshift.io/serving-cert-secret-name: webhook-certs
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    app: my-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-webhook-deployment
+  namespace: my-webhook-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-webhook
+  template:
+    metadata:
+      labels:
+        app: my-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: quay.io/cpassare/ocp-webhook:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+        volumeMounts:
+        - name: certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+      volumes:
+      - name: certs
+        secret:
+          # This secret is automatically created by the Service annotation above
+          secretName: webhook-certs

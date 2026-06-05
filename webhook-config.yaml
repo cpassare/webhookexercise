@@ -1,0 +1,24 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: my-validating-webhook
+  annotations:
+    # OpenShift automatically populates the caBundle field using this annotation
+    service.beta.openshift.io/inject-cabundle: "true"
+webhooks:
+- name: pod-validation.example.com
+  clientConfig:
+    service:
+      name: my-webhook-service
+      namespace: my-webhook-namespace
+      path: "/validate"
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  timeoutSeconds: 5
+  # Set to Ignore if you don't want cluster-wide failures if your webhook goes down
+  failurePolicy: Fail
